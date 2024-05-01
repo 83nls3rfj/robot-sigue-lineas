@@ -18,13 +18,16 @@ void setup() {
 
 /***   Loop  ***/
 void loop() {
-    ruedaIzq.write(0);
-    ruedaDer.write(180);
-    if (digitalRead(boton) == 1) {
-        ruedaIzq.write(90);
+    if (estado == 1) {
+        ruedaIzq.write(0);
+        ruedaDer.write(180);
     }
-    if (digitalRead(boton) == 1) {
+    else if (estado == 0) {
+        ruedaIzq.write(90);
         ruedaDer.write(90);
+    }
+    if (digitalRead(boton) == true) {
+        estado = 1;
     }
 }
 
