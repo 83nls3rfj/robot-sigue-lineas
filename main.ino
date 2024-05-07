@@ -6,76 +6,99 @@
 /***   Global variables and function definition  ***/
 uint8_t led = 8;
 uint8_t boton = 4;
-Servo servocontinuo de;
-Servo servocontinuo izq;
+Servo rueda_der;
+Servo rueda_izq;
 US ultrasonidos(5, 7);
 LineFollower siguelineas(2, 3);
 uint8_t VELOCIDAD_PARO = 90;
 uint8_t VELOCIDAD_ERROR_IZQ = 90;
 uint8_t VELOCIDAD_ERROR_DER = 90;
-uint8_t vel = 10
+uint8_t vel = 10;
 uint8_t sensor_Izq = 2;
 uint8_t sensor_Der = 3;
 float Der = 0;
 float Izq = 0;
+float estado = 0;
+String lastMovement = "stop";
 
 /*** FUNCIONES DE MOVIMIENTO ***/
-void adelante(int vel){ 
+void ahead(int vel){ 
  rueda_izq.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_IZQ); 
  rueda_der.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_DER); 
+ lastMovement = "ahead";
 } 
 
-void atras(int vel){ 
+void backwards(int vel){ 
  rueda_izq.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_IZQ); 
- rueda_der.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_DER); 
+ rueda_der.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_DER);
+ lastMovement = "backwards"; 
 } 
 
-void rota_izquierda(int vel){ 
+void rotateLeft(int vel){ 
  rueda_izq.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_IZQ); 
  rueda_der.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_DER); 
+ lastMovement = "rotateLeft";
 } 
 
-void rota_derecha(int vel){ 
+void rotateRight(int vel){ 
  rueda_izq.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_IZQ); 
  rueda_der.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_DER); 
+ lastMovement = "rotateRight";
 } 
 
+void turnLeft(int vel, int rapidez) { 
+ rueda_izq.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_IZQ); 
+ rueda_der.write(VELOCIDAD_PARO + vel + rapidez + VELOCIDAD_ERROR_DER); 
+ lastMovement = "giroIzq";
+}
+
+void turnRight(int vel, int rapidez) { 
+ rueda_izq.write(VELOCIDAD_PARO - vel - rapidez - VELOCIDAD_ERROR_IZQ); 
+ rueda_der.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_DER); 
+ lastMovement = "giroDer";
+}
+
+void stop() { 
+ rueda_izq.write(90); 
+ rueda_der.write(90); 
+}
 
 /***   Setup  ***/
 void setup() {
     pinMode(led, OUTPUT);
     pinMode(boton, INPUT);
-    servocontinuo der.attach(6);
-    servocontinuo izq.attach(9);
-    float estado = 0;
+    rueda_der.attach(6);
+    rueda_izq.attach(9);
+    estado = 0;
 }
 
-void detectarLinea (){
-Der = digitalRead(sensor_Der);
-    Izq = digitalRead(boton);
-    if (Der > Izq) {
-        servo_Izq.write(0);
-        servo_Der.write(90);
-    }
-    if (Izq > Der) {
-        servo_Der.write(180);
-        servo_Izq.write(90);
-    }
-    else {
-        servo_Der.write(180);
-        servo_Izq.write(0);
+void detectLine (){
+    Der = digitalRead(sensor_Der);
+    Izq = digitalRead(sensor_Izq);
+    
+    if ((Der == true) && (Izq == true)) { // Si ambos sensores detectan negro
+      ahead(10);
+    } else if (Izq > Der) { // giro izq.
+        turnLeft(10, 5);
+    } else if (Izq < Der) { // Sensor derecho detecta blanco e izquierdo detecta negro
+        turnRight(10, 5);
+    } else if ((Der == false) && (Izq == false)) { // Si ambos sensores detectan blanco
+      if(lastMovement == "giroDer") {
+        rotateLeft(10);
+      } else if (lastMovement == "giroIzq") {
+        rotateRight(10);
+      } else if (lastMovement == "ahead") {
+        rotateRight(10);
     }
 }
 
 /***   Loop  ***/
-void loop() {
-    if (estado == 1) {
-        servocontinuo izq.write(0);
-        servocontinuo der.write(180 + 50);
+void loop (){
+    if (estado == 1) { 
+        detectLine();
     }
     else if (estado == 0) {
-        servocontinuo izq.write(90);
-        servocontinuo der.write(90);
+        stop();
     }
     if (digitalRead(boton) == true) {
         if (estado == 0){
@@ -84,4 +107,4 @@ void loop() {
           estado = 0;
         }
     }
-}
+ }
