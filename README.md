@@ -2,8 +2,8 @@ IV Competición de Robótica Intercampus UCLM para Estudiantes de Enseñanza Sec
 NORMATIVA SIGUELÍNEAS
 1. Circuito
 El circuito de la competición está representado en la Figura 1. El objetivo es que un robot siguelíneas llegue hasta la meta sin cometer fallos.
-(a)
-(b)
+![Circuito con zonas](https://github.com/83nls3rfj/robot-sigue-lineas/assets/162126995/93235c48-3bba-4765-a93b-fc46bf6deadc)
+
 Figura 1. (a) Circuito de Siguelíneas. Las estrellas en el circuito representan las metas intermedias de cada región. (b) Imagen en 3D con la situación del obstáculo y las paredes del laberinto.
 El circuito consta de 5 regiones (señaladas en números romanos en la figura 1.a). Todas las líneas negras (detectables por sensores de infrarrojos) que el robot deberá seguir tendrán una anchura de 3cm y las paredes (detectables por sensores de ultrasonidos) una altura de 10cm.
 • Región I. Esta región contiene una bifurcación (señalada por b1). Además, podría existir una pared colocada en la posición p1 (asociada a b1). Esta pared indica la dirección que debe tomar el robot en la bifurcación: si hay una pared el robot deberá ir por el lado derecho de la bifurcación; si no hay pared el robot deberá ir por el lado izquierdo de la bifurcación. Si el robot va por el lado correcto de la bifurcación y llega a la primera estrella obtendrá 1 punto en la región.
