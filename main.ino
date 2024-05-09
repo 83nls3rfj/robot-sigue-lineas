@@ -160,7 +160,16 @@ void followLine (){
       Serial.println("posible bifurcación");
       /* Esta parte de la función debería comprobar si hay realmente una bifurcación o una discontinuidad del camino.
         Para esto, dado que el último movimiento tras la perdida de la líneael robot deberá retroceder */
-
+        while(!readLineSensors() || !timeout){
+          backwards(velocity);
+        }
+        rotateLeft (velocity, 45);
+        if (!readLineSensors()){
+          rotateRight(velocity, 90);
+            if (!readLineSensors()) {
+              searchForLineInSpiral();
+          }
+        }
       if(obstruction == 2){
         while(!readLineSensors() || !timeout){
           rotateRight(velocity, 1);
@@ -217,7 +226,7 @@ void detectarYEsquivarobstructions() {
         Serial.println("Pared!");// Es una pared
         obstruction = 2;
         rotateRight(velocity, 90);
-        // Lógica para resolver el laberinto
+        // TODO Falta la lógica para resolver el laberinto
         Serial.print(distancia);
         if(distancia < distanceMin){
           stop();
