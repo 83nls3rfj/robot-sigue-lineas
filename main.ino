@@ -18,6 +18,7 @@ uint8_t sensor_Der = 3;
 int estado = 0;
 String lastMovement = "init";
 uint8_t velocity = 10;
+uint8_t rotateVelocity = 5;
 uint8_t distanceMin = 23;
 int obstruction = 0; // 0 - No hay obstaculo, 1 - Obstaculo, 2 - Wall
 
@@ -33,58 +34,86 @@ void setup() {
 
 /*** FUNCIONES DE MOVIMIENTO ***/
 void ahead(int vel){ 
- Serial.println("ahead()");						   
- rueda_izq.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_IZQ); 
+ Serial.print("ahead(");
+ Serial.print(vel);
+ Serial.println(")");					   
+ rueda_izq.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_IZQ); 
  rueda_der.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_DER); 
  delay(100);
  lastMovement = "ahead";
 } 
 
 void backwards(int vel){
- Serial.println("backwards()");	
- rueda_izq.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_IZQ); 
+ Serial.print("backwards(");	
+ Serial.print(vel);
+ Serial.println(")");	
+ rueda_izq.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_IZQ); 
  rueda_der.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_DER);
  delay(100);
  lastMovement = "backwards";
 } 
 
 void rotateLeft(int vel, int degrees){ 
-  Serial.println("rotateLeft()");
+  Serial.print("rotateLeft(");
+  Serial.print(vel);
+  Serial.print(",");
+  Serial.print(degrees);
+  Serial.print(") -> ");
+  /*if (degrees < 15){
+    vel = vel * 0.7;
+  }*/
   // Calcular el tiempo necesario para girar los grados deseados
   float circunferencia = 2 * PI * 3.2;
   float distancia_por_grado = circunferencia / 360.0;
   float distancia_total = distancia_por_grado * degrees;
-  int tiempo_ms = (int) (1000.0 * distancia_total / 2.66);						 
-  rueda_izq.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_IZQ); 
+  int tiempo_ms = (int) (1000.0 * distancia_total / 2.7);	// (1000mm * distancia_total / vel / corrección)				 
+  rueda_izq.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_IZQ); 
   rueda_der.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_DER); 
   delay(tiempo_ms);
+  Serial.println(tiempo_ms);
   lastMovement = "rotateLeft";
 } 
 
 void rotateRight(int vel, int degrees){ 
-  Serial.println("rotateRight()");
+  Serial.print("rotateRight(");
+  Serial.print(vel);
+  Serial.print(",");
+  Serial.print(degrees);
+  Serial.print(") -> ");	
+  /*if (degrees < 15){
+    vel = vel * 0.7;
+  }*/
   // Calcular el tiempo necesario para girar los grados deseados
   float circunferencia = 2 * PI * 3.2;
   float distancia_por_grado = circunferencia / 360.0;
   float distancia_total = distancia_por_grado * degrees;
-  int tiempo_ms = (int) (1000.0 * distancia_total / 2.66); // (1000 * distancia_total / vel / 100)			 
-  rueda_izq.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_IZQ); 
+  int tiempo_ms = (int) (1000.0 * distancia_total / 2.7); // (1000mm * distancia_total / vel / corrección)			 
+  rueda_izq.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_IZQ); 
   rueda_der.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_DER); 
   delay(tiempo_ms);
+  Serial.println(tiempo_ms);
   lastMovement = "rotateRight";
 } 
 
 void turnLeft(int vel, int rapidez) { 
- Serial.println("turnLeft()");							   
- rueda_izq.write(VELOCIDAD_PARO - vel - VELOCIDAD_ERROR_IZQ); 
+ Serial.print("turnLeft(");
+ Serial.print(vel);
+ Serial.print(",");
+ Serial.print(rapidez);
+ Serial.println(")");							   
+ rueda_izq.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_IZQ); 
  rueda_der.write(VELOCIDAD_PARO + vel + rapidez + VELOCIDAD_ERROR_DER); 
  delay(100);
  lastMovement = "giroIzq";
 }
 
 void turnRight(int vel, int rapidez) { 
- Serial.println("turnRight()");								
- rueda_izq.write(VELOCIDAD_PARO - vel - rapidez - VELOCIDAD_ERROR_IZQ); 
+ Serial.print("turnRight(");
+ Serial.print(vel);
+ Serial.print(",");
+ Serial.print(rapidez);
+ Serial.println(")");						
+ rueda_izq.write(VELOCIDAD_PARO + vel + rapidez + VELOCIDAD_ERROR_IZQ); 
  rueda_der.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_DER); 
  delay(100);
  lastMovement = "giroDer";
@@ -97,9 +126,11 @@ void stop() {
 
 // Función para leer los sensores de línea
 bool readLineSensors() {
-  Serial.println("readLineSensors()");
-
-  return (!digitalRead(sensor_Izq) || !digitalRead(sensor_Der));
+  Serial.print("readLineSensors(");
+  int result = (!digitalRead(sensor_Izq) || !digitalRead(sensor_Der));
+  Serial.print(result);
+  Serial.println(")");
+  return result;
 }
 
 // Función para buscar la línea en espiral
@@ -110,17 +141,21 @@ void searchForLineInSpiral() {
   int currentDelay = initialDelay;
   const int delayIncrement = 20;  // incremento de tiempo para expandir la espiral
   int timeout = 5;
-
-  while (!readLineSensors() || !timeout) {  // Continuar hasta que la línea sea detectada
-    if(lastMovement == "giroDer" || lastMovement == "rotateRight") {
+  
+  if(lastMovement == "giroDer" || lastMovement == "rotateRight") {
+    while (!readLineSensors() && timeout > 0) {  // Continuar hasta que la línea sea detectada
       turnLeft(velocity, 5);
-    } else {
-      turnRight(velocity, 5);
+      delay(100);
+      currentDelay =  currentDelay + delayIncrement;
+      timeout--;
     }
-    delay(100);  // Tiempo para un pequeño giro a la izquierda
-    // Incrementa el tiempo de avance para expandir la espiral
-    currentDelay =  currentDelay + delayIncrement;
-    timeout--;
+  } else {
+    while (!readLineSensors() && timeout > 0) {  // Continuar hasta que la línea sea detectada
+      turnRight(velocity, 5);
+      delay(100);
+      currentDelay =  currentDelay + delayIncrement;
+      timeout--;
+    }
   }
   stop();  // Detener el robot cuando la línea se encuentra
 }
@@ -137,53 +172,73 @@ void followLine (){
     Serial.println("Negro|Negro -> Recto");
     ahead(velocity);
   } else if (Izq > Der) { // Detecta blanco a la derecha -> Giro izquierda.
-      Serial.println("Blanco|Negro -> Izquierda");
-      rotateLeft(velocity, 1);
+      Serial.println("Negro|Blanco -> Izquierda");
+      turnLeft(velocity, 10);
   } else if (Izq < Der) { // Detecta blanco a la izquierda -> Giro derecha
-      Serial.println("Negro|Blanco -> Derecha");
-      rotateRight(velocity, 1);
+      Serial.println("Blanco|Negro -> Derecha");
+      turnRight(velocity, 10);
   } else if (Izq && Der) { // Si ambos sensores detectan blanco
     Serial.println("Blanco|Blanco -> Buscar");
-    if(lastMovement == "giroDer" || lastMovement == "rotateRight") {
-      Serial.println("por la izquierda");
-      while(!readLineSensors() || !timeout){
-        rotateLeft(velocity, 1);
-        timeout--;
-      }
-    } else if (lastMovement == "giroIzq" || lastMovement == "rotateLeft") {
-      Serial.println("por la derecha");
-      while(!readLineSensors() || !timeout){
-        rotateRight(velocity, 1);
-        timeout--;
-      }
-    } else if(lastMovement == "ahead") {
+    //if(lastMovement == "ahead") {
       Serial.println("posible bifurcación");
       /* Esta parte de la función debería comprobar si hay realmente una bifurcación o una discontinuidad del camino.
         Para esto, dado que el último movimiento tras la perdida de la líneael robot deberá retroceder */
-        while(!readLineSensors() || !timeout){
-          backwards(velocity);
+      int leftWay = 0; // 0 -> no hay camino; 1 -> hay camino
+      int rightWay = 0; // 0 -> no hay camino; 1 -> hay camino
+      /*while(!readLineSensors() || !timeout){
+        backwards(velocity);
+        timeout--;
+      }*/
+      //backwards(velocity);
+      rotateLeft(velocity, 40);
+      if(readLineSensors()){
+        Serial.println("Hay camino por la izquierda");
+        leftWay = 1;
+      }
+      rotateRight(velocity, 80);
+      if(readLineSensors()){
+        Serial.println("Hay camino por la derecha");
+        rightWay = 1;
+      }
+      rotateLeft(velocity, 40);
+
+      if(leftWay && rightWay) { // Hay bifurcación?
+        Serial.println("Hay bifurcación");
+        if(obstruction == 2) {
+          Serial.println("Hay pared -> Derecha");
+          do{
+            turnRight(velocity, 10);
+            delay(1000);
+            timeout--;
+          } while(!readLineSensors() || !timeout);
+        }else{
+          Serial.println("No hay pared -> Izquierda");
+          do{
+            turnLeft(velocity, 10);
+            delay(1000);
+            timeout--;
+          } while(!readLineSensors() || !timeout);
         }
-        rotateLeft (velocity, 45);
-        if (!readLineSensors()){
-          rotateRight(velocity, 90);
-            if (!readLineSensors()) {
-              searchForLineInSpiral();
-          }
-        }
-      if(obstruction == 2){
-        while(!readLineSensors() || !timeout){
-          rotateRight(velocity, 1);
-          timeout--;
-        }
-      }else{
-        while(!readLineSensors() || !timeout){
-          rotateLeft(velocity, 1);
-          timeout--;
+      } else {  // Si no hay bifurcación 
+        if(leftWay){ // Hay camino por la izquierda?
+          Serial.println("Sigue el camino de la izquierda");
+          do{
+            turnLeft(velocity, 10);
+            delay(1000);
+            timeout--;
+          } while(!readLineSensors() || !timeout);
+        }else if(rightWay) { // Hay camino por la derecha?
+          Serial.println("Sigue el camino de la derecha");
+          do{
+            turnRight(velocity, 10);
+            delay(1000);
+            timeout--;
+          } while(!readLineSensors() || !timeout);
+        } else { // No hay camino
+          Serial.println("Callejon sin salida");
+          searchForLineInSpiral();
         }
       }
-    } else {
-      searchForLineInSpiral();
-    }
   }
 }
 
@@ -264,8 +319,6 @@ void movementTestSuit(){
 void loop() {
   bool button = digitalRead(boton);
   delay(100);  // delay in between reads for stability
-  //Serial.print("Button: ");
-  //Serial.println(button);
   if (button) {
     if (estado == 0){
       estado = 1;
@@ -275,11 +328,18 @@ void loop() {
   }
 
   if (estado == 1) {
-    detectarYEsquivarobstructions(); //Añadir esta línea para detectar y esquivar obstáculos
+    //detectarYEsquivarobstructions(); //Añadir esta línea para detectar y esquivar obstáculos
     followLine();
+    //readLineSensors();
+    //backwards(velocity);
     //movementTestSuit();
     //searchForLineInSpiral();
     //ahead(velocity);
+    //turnLeft(velocity, 5);
+    //turnRight(velocity, 5);
+    //rotateLeft(velocity, 90);
+    //rotateRight(velocity, 90);
+    //estado = 0;
   } else if (estado == 0) {
     stop();
   }
