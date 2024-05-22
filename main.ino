@@ -101,7 +101,7 @@ void turnLeft(int vel, int rapidez) {
  Serial.print(",");
  Serial.print(rapidez);
  Serial.println(")");							   
- rueda_izq.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_IZQ); 
+ rueda_izq.write(VELOCIDAD_PARO); 
  rueda_der.write(VELOCIDAD_PARO + vel + rapidez + VELOCIDAD_ERROR_DER); 
  delay(100);
  lastMovement = "giroIzq";
@@ -114,7 +114,7 @@ void turnRight(int vel, int rapidez) {
  Serial.print(rapidez);
  Serial.println(")");						
  rueda_izq.write(VELOCIDAD_PARO + vel + rapidez + VELOCIDAD_ERROR_IZQ); 
- rueda_der.write(VELOCIDAD_PARO + vel + VELOCIDAD_ERROR_DER); 
+ rueda_der.write(VELOCIDAD_PARO); 
  delay(100);
  lastMovement = "giroDer";
 }
@@ -143,18 +143,18 @@ void searchForLineInSpiral() {
   int timeout = 5;
   
   if(lastMovement == "giroDer" || lastMovement == "rotateRight") {
-    while (!readLineSensors() && timeout > 0) {  // Continuar hasta que la línea sea detectada
-      turnLeft(velocity, 5);
+    while (!readLineSensors()) {  // Continuar hasta que la línea sea detectada
+      turnLeft(velocity, 10);
       delay(100);
       currentDelay =  currentDelay + delayIncrement;
-      timeout--;
+      //timeout--;
     }
   } else {
-    while (!readLineSensors() && timeout > 0) {  // Continuar hasta que la línea sea detectada
+    while (!readLineSensors()) {  // Continuar hasta que la línea sea detectada
       turnRight(velocity, 5);
       delay(100);
       currentDelay =  currentDelay + delayIncrement;
-      timeout--;
+      //timeout--;
     }
   }
   stop();  // Detener el robot cuando la línea se encuentra
@@ -190,17 +190,31 @@ void followLine (){
         timeout--;
       }*/
       //backwards(velocity);
-      rotateLeft(velocity, 40);
+      rotateLeft(velocity, 55);
       if(readLineSensors()){
         Serial.println("Hay camino por la izquierda");
         leftWay = 1;
       }
-      rotateRight(velocity, 80);
+      rotateRight(velocity, 110);
       if(readLineSensors()){
         Serial.println("Hay camino por la derecha");
         rightWay = 1;
       }
-      rotateLeft(velocity, 40);
+      rotateLeft(velocity, 55);
+
+      /*int leftDegrees = 0;
+      do{
+        rotateLeft(velocity, 1);
+        leftDegrees++;
+      } while(!readLineSensors());
+      rotateRight(velocity, leftDegrees);
+      int rightDregrees = 0;
+      do{
+        rotateRigth (velocity, 1);
+        rightDegrees++;
+      } while (!readLineSensors());
+      rotateLeft (velocity,1);      
+      int result = leftDegrees - rightDregrees;*/
 
       if(leftWay && rightWay) { // Hay bifurcación?
         Serial.println("Hay bifurcación");
@@ -239,6 +253,19 @@ void followLine (){
           searchForLineInSpiral();
         }
       }
+    /*} else {
+      if(lastMovement == "giroDer" || lastMovement == "rotateRight") {
+        while (!readLineSensors()) {  // Continuar hasta que la línea sea detectada
+          turnRight(velocity, 10);
+          delay(100);
+        }
+      } else {
+        while (!readLineSensors()) {  // Continuar hasta que la línea sea detectada
+          turnLeft(velocity, 5);
+          delay(100);
+        }
+      }
+    }*/
   }
 }
 
@@ -266,7 +293,7 @@ void detectarYEsquivarobstructions() {
       delay(1000);
       rightDistance = ultrasonidos.read();
       delay(100);
-      rotateLeft(velocity, 50); 
+      rotateLeft(velocity, 30); 
       stop(); // Detener el robot
       delay(1000);
       Serial.print("Medición: ");
@@ -328,11 +355,12 @@ void loop() {
   }
 
   if (estado == 1) {
-    //detectarYEsquivarobstructions(); //Añadir esta línea para detectar y esquivar obstáculos
+    detectarYEsquivarobstructions(); //Añadir esta línea para detectar y esquivar obstáculos
     followLine();
     //readLineSensors();
     //backwards(velocity);
     //movementTestSuit();
+    //turnRight(velocity, 5);
     //searchForLineInSpiral();
     //ahead(velocity);
     //turnLeft(velocity, 5);
