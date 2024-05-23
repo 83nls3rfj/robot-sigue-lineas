@@ -12,7 +12,7 @@ US ultrasonidos(5, 7);
 LineFollower siguelineas(2, 3);
 uint8_t VELOCIDAD_PARO = 90;
 uint8_t VELOCIDAD_ERROR_IZQ = 0;
-uint8_t VELOCIDAD_ERROR_DER = 1;
+uint8_t VELOCIDAD_ERROR_DER = 2;
 uint8_t sensor_Izq = 2;
 uint8_t sensor_Der = 3;
 int estado = 0;
@@ -22,6 +22,7 @@ uint8_t rotateVelocity = 5;
 uint8_t distanceMin = 23;
 int obstruction = 0; // 0 - No hay obstaculo, 1 - Obstaculo, 2 - Wall
 int degreesLimit = 110; // Máximo número de grados que se buscará un desvio
+int thereWasWall = 0;
 
 /***  Setup  ***/
 void setup() {
@@ -275,34 +276,40 @@ void followLine (){
             do{
               ahead(velocity);
             } while(readLineSensors());
-            searchForLineInSpiral("left");
-            /*do{
-              turnLeft(velocity, 5);
-            } while(digitalRead(sensor_Izq) == digitalRead(sensor_Der) && digitalRead(sensor_Izq) == 0);*/
+            //searchForLineInSpiral("left");
+            do{
+              rotateLeft(velocity, 10);
+            } while(!readLineSensors());
           } else { // Si el recorrido mas largo está a la derecha lo seguirá
             Serial.println("Hacia la derecha");
             do{
               ahead(velocity);
             } while(readLineSensors());
-            searchForLineInSpiral("right");
-            /*do{
-              goRight(velocity, 5);
-            } while(digitalRead(sensor_Izq) == digitalRead(sensor_Der) && digitalRead(sensor_Izq) == 0);*/
+            //searchForLineInSpiral("right");
+            do{
+              rotateRight(velocity, 10);
+            } while(!readLineSensors());
           }
         } else {
           Serial.println("Hay bifurcación!");
           if(obstruction == 2) { // Hay pared?
+            thereWasWall = 1;
             Serial.println("Hay pared -> Derecha");
-            turnLeft(velocity, 5);
-            /*do{
-              turnRight(velocity, 5);
-            } while((izq != digitalRead(sensor_Izq) || der != digitalRead(sensor_Der)));*/
-          } else { // Si no hay pared, girará a la izquierda segun normas del concurso
+            //turnLeft(velocity, 5);
+            do{
+              rotateRight(velocity, 10);
+            } while(!readLineSensors());
+          } else if(thereWasWall){ // Si no hay pared, girará a la izquierda segun normas del concurso
+            thereWasWall = 0;
+            Serial.println("Hubo pared -> Derecha");
+            do{
+              rotateRight(velocity, 10);
+            } while(!readLineSensors());
+          } else {
             Serial.println("No hay pared -> Izquierda");
-            turnLeft(velocity, 5);
-            /*do{
-              turnLeft(velocity, 5);
-            } while((izq != digitalRead(sensor_Izq) || der != digitalRead(sensor_Der)));*/
+            do{
+              rotateLeft(velocity, 10);
+            } while(!readLineSensors());
           }
         }
       } else {  // Si no hay bifurcación 
@@ -316,7 +323,10 @@ void followLine (){
           do{
             ahead(velocity);
           } while(readLineSensors());
-          searchForLineInSpiral("left");
+          //searchForLineInSpiral("left");
+          do{
+            rotateLeft(velocity, 10);
+          } while(!readLineSensors());
         }else if(rightDegrees < degreesLimit) { // Hay camino por la derecha?
           Serial.println("Sigue el camino por la derecha");
           //turnLeft(velocity, 5);
@@ -326,7 +336,10 @@ void followLine (){
           do{
             ahead(velocity);
           } while(readLineSensors());
-          searchForLineInSpiral("right");
+          //searchForLineInSpiral("right");
+          do{
+              rotateRight(velocity, 10);
+            } while(!readLineSensors());
         } else { // No hay camino! rota 180º y media vuelta
           Serial.println("Callejon sin salida! media vuelta");
           rotateRight(velocity, 45);
@@ -383,14 +396,17 @@ void detectarYEsquivarobstructions() {
       } else {
         Serial.println("Pared!");// Es una pared
         obstruction = 2;
-        rotateRight(velocity, 90);
-        // TODO Falta la lógica para resolver el laberinto
-        Serial.print(distancia);
-        if(distancia < distanceMin){
-          stop();
-          delay(1000);
-          rotateLeft(velocity, 180);
-          delay(1000);
+        do{
+          ahead(velocity);
+        } while(ultrasonidos.read() > 15);
+
+        if(readLineSensors()) {
+          rotateRight(velocity, 90);
+          if(ultrasonidos.read() < distanceMin){
+            rotateLeft(velocity, 180);
+          }
+        } else {
+          searchForLineInSpiral("right");
         }
       }
       digitalWrite(led, LOW); // Apagar el LED
@@ -431,8 +447,9 @@ void loop() {
   }
 
   if (estado == 1) { // Estado que permite controlar el arranque y parado del robot mediante su boton físico
-    //detectarYEsquivarobstructions(); //Añadir esta línea para detectar y esquivar obstáculos
+    detectarYEsquivarobstructions(); //Añadir esta línea para detectar y esquivar obstáculos
     followLine();
+    //Serial.println(ultrasonidos.read());
     //readLineSensors();
     //searchForLineInSpiral("right");
     //searchWay("left");
