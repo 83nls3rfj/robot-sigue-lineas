@@ -21,8 +21,9 @@ uint8_t velocity = 10;
 uint8_t rotateVelocity = 5;
 uint8_t distanceMin = 23;
 int obstruction = 0; // 0 - No hay obstaculo, 1 - Obstaculo, 2 - Wall
-int degreesLimit = 110; // Máximo número de grados que se buscará un desvio
+int degreesLimit = 130; // Máximo número de grados que se buscará un desvio
 int thereWasWall = 0;
+int searchCanDegrees = 35; // Máximo número de grados que busca a ambos lados de la lata
 
 /***  Setup  ***/
 void setup() {
@@ -259,16 +260,11 @@ void followLine (){
       int errorRange = 20;
       ahead(velocity);
       delay(200);
-      /*rotateLeft(velocity, 45);
-      int maxiLeft = readLineSensors();
-      rotateRight(velocity, 90);
-      int maxiRight = readLineSensors();
-      rotateLeft (velocity, 45);*/
       
       if(leftDegrees > 5 && leftDegrees < degreesLimit && rightDegrees > 5 && rightDegrees < degreesLimit) { // Hay bifurcación? camino a izquierda y derecha a menos de degreesLimit
         izq = (int) digitalRead(sensor_Izq);
         der = (int) digitalRead(sensor_Der); 
-        if(abs(leftDegrees - rightDegrees) > errorRange) { 
+        if(abs(leftDegrees - rightDegrees) ) { //> errorRange 
           Serial.println("Curva peligrosa!");
           // Guarda el estado actual de los sensores 
           if(leftDegrees > rightDegrees){ // Si el recorrido mas largo está a la izquierda lo seguirá
@@ -316,27 +312,17 @@ void followLine (){
         Serial.println("No hay bifurcación");
         if(leftDegrees < degreesLimit){ // Hay camino por la izquierda?
           Serial.println("Sigue el camino por la izquierda");
-          //turnLeft(velocity, 5);
-          /*do{
-            turnLeft(velocity, 5);
-          } while(!readLineSensors());*/
           do{
             ahead(velocity);
           } while(readLineSensors());
-          //searchForLineInSpiral("left");
           do{
             rotateLeft(velocity, 10);
           } while(!readLineSensors());
         }else if(rightDegrees < degreesLimit) { // Hay camino por la derecha?
           Serial.println("Sigue el camino por la derecha");
-          //turnLeft(velocity, 5);
-          /*do{
-            turnRight(velocity, rightDegrees);
-          } while(!readLineSensors());*/
           do{
             ahead(velocity);
           } while(readLineSensors());
-          //searchForLineInSpiral("right");
           do{
               rotateRight(velocity, 10);
             } while(!readLineSensors());
@@ -372,17 +358,17 @@ void detectarYEsquivarobstructions() {
       digitalWrite(led, HIGH); // Encender el LED
       stop(); // Detener el robot
       delay(1000);
-      rotateLeft(velocity, 30); 
+      rotateLeft(velocity, searchCanDegrees); 
       stop(); // Detener el robot
       delay(1000);
       leftDistance = ultrasonidos.read();
       delay(100);
-      rotateRight(velocity, 60);
+      rotateRight(velocity, searchCanDegrees * 2);
       stop(); // Detener el robot
       delay(1000);
       rightDistance = ultrasonidos.read();
       delay(100);
-      rotateLeft(velocity, 30); 
+      rotateLeft(velocity, searchCanDegrees); 
       stop(); // Detener el robot
       delay(1000);
       Serial.print("Medición: ");
@@ -414,7 +400,6 @@ void detectarYEsquivarobstructions() {
   } else if(ultrasonidos.read() > 30 && obstruction == 1) {
     obstruction = 0;
   }
-  
 }
 
 /**
